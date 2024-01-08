@@ -1,0 +1,102 @@
+<div id="replaceMe">
+    <br><br><br>
+
+    <div class="container-lg ">
+        <h1 class="display-4 text-center"> {{time}} </h1>
+        <br><br>
+        <div class="row">
+            <div class="col-sm shadow offset2 bg-gradient rounded sm-3 mb-3 mx-3"
+                style="background-color:rgb(222, 222, 222);">
+
+                <h2>TopSlowestCommands </h2>
+
+                {% for key,val in trace_json.TopSlowestCommands.items %}
+
+                {{key}} {{val}}
+                <br>
+                {% endfor %}
+
+            </div>
+            <div class="col-sm shadow offset2 bg-gradient rounded sm-3 mb-3 mx-3"
+                style="background-color:rgb(222, 222, 222);">
+                <h2> keyNameBreakDown </h2>
+
+
+                {% for key,val in trace_json.keyNameBreakDown.items %}
+                {{key}} {{val}}
+                <br>
+
+                {% endfor %}
+            </div>
+            <div class="col-sm shadow offset2 bg-gradient rounded sm-3 mb-3 mx-3"
+                style="background-color:rgb(222, 222, 222);">
+                <h3> keyNamePrefixBreakDown </h3>
+
+                {% for key,val in trace_json.keyNamePrefixBreakDown.items %}
+
+                {{key}} {{val}}
+                <br>
+                {% endfor %}
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm shadow offset2 bg-gradient rounded sm-3 mb-3 mx-3"
+                style="background-color:rgb(222, 222, 222);">
+                <h2> percentilesCommandsDuration </h2>
+
+                {% for key,val in trace_json.percentilesCommandsDuration.items %}
+
+                {{key}} {{val}}
+                <br>
+
+                {% endfor %}
+            </div>
+
+            <div class="col-sm bg-gradient shadow rounded sm-3 mb-3 mx-3 " style="background-color:rgb(222, 222, 222);">
+                <h2> breakUpCommandByType </h2>
+
+                {% for key,val in trace_json.breakUpCommandByType.items %}
+
+                {{key}} {{val}}
+                <br>
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm bg-gradient shadow rounded sm-3 mb-3 mx-3 " style="background-color:rgb(222, 222, 222);">
+                <h2> top10SlowestCommands </h2>
+                <table>
+                    <tr>
+                        <th>Duration</th>
+                        <th>Command</th>
+                        <th>keyname</th>
+                        <th>Value</th>
+                    </tr>
+
+                    {% for key in trace_json.top10SlowestCommands %}
+
+                    <tr>
+                        <td>{{key.duration}}</td>
+                        <td>{{key.command}}</td>
+                        <td>{{key.keyname}}</td>
+                        <td>{{key.val|truncatechars:128}}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <div class="col-sm bg-gradient shadow rounded sm-3 mb-3 mx-3 " style="background-color:rgb(222, 222, 222);">
+                <br>
+                <h2>getTotalCommandsProcessed</h2>
+                {{trace_json.getTotalCommandsProcessed}}
+
+                <h2>getTotalCommandDuration</h2>
+                {{trace_json.getTotalCommandDuration}}
+            </div>
+        </div>
+
+    </div>
+</div>

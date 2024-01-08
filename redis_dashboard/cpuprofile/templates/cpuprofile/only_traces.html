@@ -1,0 +1,35 @@
+<div class="container" id="tracelist">
+    <div class="row">
+        {% for trace in traces %}
+
+        {% if "bg-success" in trace.color %}
+        <div class="col-md-1 bg-gradient " style="background-color: #7caf7c;">
+            <button class='btn text-white' hx-get="/traces/{{ trace.id }}" hx-target="#replaceMe" hx-swap="outerHTML">
+                {{trace.id}}
+        </div>
+        {% elif "bg-warning" in trace.color %}
+        <div class="col-md-1 bg-gradient " style="background-color:#e7b54b" ;>
+            <button class='btn text-white' hx-get="/traces/{{ trace.id }}" hx-target="#replaceMe" hx-swap="outerHTML">
+                {{trace.id}}
+        </div>
+        {% else %}
+        <div class="col-md-1 bg-gradient " style="background-color: #cb5449 ;">
+            <button class='btn text-white' hx-get="/traces/{{ trace.id }}" hx-target="#replaceMe" hx-swap="outerHTML">
+                {{trace.id}}
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    <br>
+    {% if captureStatus.captureStatus %}
+    <h1> <span class="badge align-items-center" style="background-color: #7caf7c;">No capture in process </span>
+    </h1>
+    {% else %}
+    <h1> <span class=" badge bg-primary align-items-center">Capture in process</span></h1>
+    {% endif %}
+
+</div>
+
+<div id="replaceMe">
+
+</div>

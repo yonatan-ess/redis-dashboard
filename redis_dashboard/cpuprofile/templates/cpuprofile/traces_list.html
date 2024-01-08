@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    {% load static %}
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+
+    <script src="{% static 'htmx.min.js' %}" defer></script>
+
+</head>
+
+<div class="container bg-gradient rounded" style="background-color:rgb(117, 117, 117);padding:25px;">
+    <ul class="nav">
+        <li class="nav-item">
+            <a class="nav-link link-light" href="/traces">Traces</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link link-light" href="/capturecommandstosql">Capture Traces</a>
+        </li>
+    </ul>
+    {% block content %}
+    {% endblock %}
+</div>
+<br>
+
+<br>
+
+<div class="container" id="tracelist">
+    <div class="row">
+        {% for trace in object_list %}
+
+        {% if "bg-success" in trace.color %}
+        <div class="col-md-1 bg-gradient " style="background-color: #7caf7c;">
+            <button class='btn text-white' hx-get="/traces/{{ trace.id }}" hx-target="#replaceMe" hx-swap="outerHTML">
+                {{trace.id}}
+        </div>
+        {% elif "bg-warning" in trace.color %}
+        <div class="col-md-1 bg-gradient " style="background-color:#e7b54b" ;>
+            <button class='btn text-white' hx-get="/traces/{{ trace.id }}" hx-target="#replaceMe" hx-swap="outerHTML">
+                {{trace.id}}
+        </div>
+        {% else %}
+        <div class="col-md-1 bg-gradient " style="background-color: #cb5449 ;">
+            <button class='btn text-white' hx-get="/traces/{{ trace.id }}" hx-target="#replaceMe" hx-swap="outerHTML">
+                {{trace.id}}
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+</div>
+
+
+<div id="replaceMe">
+
+</div>

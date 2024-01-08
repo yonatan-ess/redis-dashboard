@@ -1,0 +1,75 @@
+<html>
+
+<head>
+
+    {% load static %}
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+
+    <script src="{% static 'htmx.min.js' %}" defer></script>
+
+</head>
+
+<div class="container bg-gradient rounded" style="background-color:rgb(117, 117, 117);padding:25px;">
+    <ul class="nav">
+        <li class="nav-item">
+            <a class="nav-link link-light" href="/traces">Traces</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link link-light" href="/capturecommandstosql">Capture Traces</a>
+        </li>
+    </ul>
+    {% block content %}
+    {% endblock %}
+</div>
+
+
+<body>
+    <br>
+    <div class="container">
+        <form action="" method="post">
+            <label for="fname">Redis Host</label>
+            <input type="text" id="host" name="host" value="localhost">
+            <label for="fname">db</label>
+            <input type="text" id="db" name="db" value="0">
+            <label for="fname">port</label>
+            <input type="text" id="port" name="port" value="6379">
+            <label for="fname">password</label>
+            <input input type="password" id="password" name="password" value="">
+            <label for="fname">username</label>
+            <input type="text" id="username" name="username" value="">
+
+            <br><br>
+            <label for="fname">amount of commands to capture</label>
+            <input type="text" id="amount" name="amount" value="500">
+            <br><br>
+            <label for="fname">sleep interval between captures(seconds)</label>
+            <input type="text" id="interval" name="interval" value="0.3">
+            <br><br>
+            <label for="fname">amount of captures</label>
+            <input type="text" id="captures" name="captures" value="36">
+            <br><br><br>
+            <button type="button" class="btn btn-primary" hx-post="/capture" hx-trigger="click" style="background-color: #5E8D9F;
+            ">
+                {% csrf_token %}
+                New capture
+            </button>
+            {% csrf_token %}
+
+        </form>
+
+    </div>
+
+
+    <div class="container">
+        <div hx-get="/onlytraces/" hx-trigger="load, every 2s" hx-target="#tracelist" hx-swap="outerHTML">
+        </div>
+
+        <div id="tracelist">
+
+        </div>
+    </div>
+</body>
+
+</html>
