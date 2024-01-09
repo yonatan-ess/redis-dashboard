@@ -7,13 +7,19 @@
     {% load bootstrap5 %}
     {% bootstrap_css %}
     {% bootstrap_javascript %}
-
+    <link async href="{% static 'fontawesomefree/css/all.min.css' %}" rel="stylesheet" type="text/css">
     <script src="{% static 'htmx.min.js' %}" defer></script>
 
+    <style>
+        .card-header {
+            background-color: rgba(0, 0, 0, .10);
+        }
+    </style>
 </head>
 
-<div class="container bg-gradient rounded" style="background-color:rgb(117, 117, 117);padding:25px;">
+<div class="container mt-5 bg-gradient rounded" style="background-color:rgb(117, 117, 117)">
     <ul class="nav">
+        <i class="fa-solid fa-camera" style="padding-top: 12px;color: white;"></i>
         <li class="nav-item">
             <a class="nav-link link-light" href="/traces">Traces</a>
         </li>
@@ -27,7 +33,6 @@
 <br>
 
 <br>
-
 <div class="container" id="tracelist">
     <div class="row">
         {% for trace in object_list %}
