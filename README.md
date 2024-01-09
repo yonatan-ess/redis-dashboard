@@ -29,11 +29,12 @@ start capturing !
 
 
 ## How to capture 
-![Screen Shot 2024-01-09 at 11 37 44](https://github.com/yonatan-ess/redis-dashboard/assets/7499016/c5e5bac6-92ae-4177-aa9b-1550ecc04694)
+![Screen Shot 2024-01-09 at 16 37 47](https://github.com/yonatan-ess/redis-dashboard/assets/7499016/c2aceab7-f284-4598-bb9b-904c19d3e0e1)
+
 
 
 ## how to see captured monitors 
-![Screen Shot 2024-01-09 at 11 38 24](https://github.com/yonatan-ess/redis-dashboard/assets/7499016/8cd5c298-4f56-4d96-bee7-3ca0e8da7da1)
+![Screen Shot 2024-01-09 at 16 38 31](https://github.com/yonatan-ess/redis-dashboard/assets/7499016/907a5811-a04b-4573-a10b-85d58ed63a2f)
 
 
 ## Build With
