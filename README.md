@@ -29,7 +29,7 @@ start capturing !
 
 
 ## How to capture 
-![Screen Shot 2024-01-09 at 16 37 47](https://github.com/yonatan-ess/redis-dashboard/assets/7499016/c2aceab7-f284-4598-bb9b-904c19d3e0e1)
+![output2](https://github.com/yonatan-ess/redis-dashboard/assets/7499016/4735b127-2615-41c4-a825-3b7c4a1254f7)
 
 
 
