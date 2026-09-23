@@ -1,0 +1,68 @@
+{% load dash %}
+<section id="live" {% if capture.is_running %}hx-get="{% url 'capture_live' capture.id %}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+    <div class="panel p-3 mb-3">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <span class="badge badge-status status-{{ capture.status }} fs-6">
+                {% if capture.is_running %}<span class="pulse"></span>{% endif %}{{ capture.status }}
+            </span>
+            <div class="flex-grow-1" style="min-width: 200px">
+                <div class="d-flex justify-content-between small text-body-secondary mb-1">
+                    <span>{{ samples|length }} of {{ capture.samples_requested }} samples</span>
+                    <span>{{ progress }}%</span>
+                </div>
+                <div class="progress" role="progressbar" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100" style="height: 6px">
+                    <div class="progress-bar {% if capture.is_running %}progress-bar-striped progress-bar-animated{% endif %} bg-accent" style="width: {{ progress }}%"></div>
+                </div>
+            </div>
+            {% if capture.is_running %}
+            <button class="btn btn-sm btn-outline-light" hx-post="{% url 'stop_capture' capture.id %}" hx-target="#live" hx-swap="outerHTML"
+                {% if capture.stop_requested %}disabled{% endif %}>
+                <i class="fa-solid fa-stop me-1"></i>{% if capture.stop_requested %}Stopping…{% else %}Stop{% endif %}
+            </button>
+            {% endif %}
+        </div>
+        {% if capture.error %}
+        <div class="alert alert-danger small mt-3 mb-0 d-flex gap-2">
+            <i class="fa-solid fa-circle-exclamation mt-1"></i><div class="mono">{{ capture.error }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if samples %}
+    <div class="row g-3 mb-3">
+        <div class="col-lg-8">
+            <div class="panel p-3 h-100">
+                <div class="panel-title">Timeline <span class="hint">main-thread CPU % and ops/sec per sample — click a point to inspect</span></div>
+                <div class="chart-box"><canvas data-chart="timeline" data-source="timeline-data"></canvas></div>
+                {{ timeline|json_script:"timeline-data" }}
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="panel p-3 h-100">
+                <div class="d-flex justify-content-between align-items-baseline">
+                    <div class="panel-title mb-0">Samples</div>
+                    <div class="legend">
+                        <span><i class="sw lvl-ok"></i>{{ counts.ok }}</span>
+                        <span><i class="sw lvl-warn"></i>{{ counts.warn }}</span>
+                        <span><i class="sw lvl-crit"></i>{{ counts.crit }}</span>
+                        {% if counts.unknown %}<span><i class="sw lvl-unknown"></i>{{ counts.unknown }}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="tiles mt-3">
+                    {% for s in samples %}
+                    <button type="button" class="tile lvl-{{ s.level }}" data-index="{{ s.index }}"
+                        data-url="{% url 'sample' capture.id s.index %}"
+                        title="#{{ s.index }} · {{ s.avg_usec_per_call|usec }}/call · CPU {{ s.cpu_pct|pct }} · {{ s.ops_per_sec|compact }} ops/s">
+                        {{ s.index }}
+                    </button>
+                    {% endfor %}
+                    {% if capture.is_running %}<span class="tile tile-pending"><span class="spinner-grow spinner-grow-sm"></span></span>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif capture.is_running %}
+    <div class="panel empty-state"><span class="spinner-border text-accent mb-2"></span>
+        <p class="text-body-secondary mb-0">Collecting the first sample…</p></div>
+    {% endif %}
+</section>

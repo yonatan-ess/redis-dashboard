@@ -1,0 +1,36 @@
+{% extends "cpuprofile/base.html" %}
+{% load dash %}
+{% block title %}#{{ capture.id }} {{ capture.target }} · Redis Dashboard{% endblock %}
+{% block content %}
+<a href="{% url 'home' %}" class="back-link"><i class="fa-solid fa-arrow-left me-1"></i>All captures</a>
+
+<header class="d-flex flex-wrap align-items-start gap-3 mt-2 mb-4">
+    <div class="flex-grow-1">
+        <h1 class="h3 mb-1">Capture #{{ capture.id }} <span class="mono text-body-secondary fs-5 ms-1">{{ capture.target }}</span></h1>
+        <div class="meta">
+            <span><i class="fa-regular fa-clock"></i>{{ capture.started_at|date:"M j Y, H:i:s" }} UTC</span>
+            <span><i class="fa-solid fa-layer-group"></i>{{ capture.amount }} cmds × {{ capture.samples_requested }} samples</span>
+            <span><i class="fa-solid fa-hourglass-half"></i>{{ capture.interval }}s pause</span>
+            <span><i class="fa-solid fa-gauge-high"></i>warn {{ capture.warn_usec|usec }} · crit {{ capture.crit_usec|usec }}</span>
+            <span><i class="fa-solid fa-list-ul"></i>slowlog ≥ {% if capture.slowlog_threshold_us is None %}unknown{% else %}{{ capture.slowlog_threshold_us|usec }}{% endif %}</span>
+        </div>
+    </div>
+    <button class="btn btn-sm btn-outline-danger" hx-post="{% url 'delete_capture' capture.id %}"
+        hx-confirm="Delete capture #{{ capture.id }} and all its samples?" {% if capture.is_running %}disabled title="Stop the capture first"{% endif %}>
+        <i class="fa-regular fa-trash-can me-1"></i>Delete
+    </button>
+</header>
+
+{% include "cpuprofile/_live.html" %}
+
+<section id="sample-detail" class="mt-4"
+    {% if selected %}hx-get="{% url 'sample' capture.id selected %}" hx-trigger="load"{% endif %}>
+    {% if not selected %}
+    <div class="panel empty-state">
+        <i class="fa-solid fa-hand-pointer"></i>
+        <h2 class="h6">Pick a sample above to see what Redis was doing</h2>
+        <p class="text-body-secondary small mb-0">Tip: use <kbd>←</kbd> <kbd>→</kbd> to step through samples.</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
