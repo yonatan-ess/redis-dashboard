@@ -1,0 +1,38 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    services:
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 2s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: redis_dashboard/requirements.txt
+      - run: pip install -r redis_dashboard/requirements.txt
+      - name: Django checks
+        working-directory: redis_dashboard
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+      - name: Tests
+        working-directory: redis_dashboard
+        env:
+          # enables the integration tests against the service container
+          REDIS_HOST: localhost
+        run: python -W error::DeprecationWarning manage.py test cpuprofile -v 2
