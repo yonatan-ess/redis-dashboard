@@ -1,0 +1,45 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Redis Dashboard{% endblock %}</title>
+    <script>
+        // set theme before paint to avoid a flash
+        try { document.documentElement.dataset.bsTheme = localStorage.getItem('theme') || 'dark' } catch (e) { }
+    </script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link href="{% static 'vendor/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'fontawesomefree/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/app.css' %}" rel="stylesheet">
+</head>
+
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <nav class="app-nav">
+        <div class="container-xl d-flex align-items-center gap-3">
+            <a class="brand" href="{% url 'home' %}">
+                <span class="brand-mark"><i class="fa-solid fa-bolt"></i></span>
+                <span>redis<span class="text-body-secondary">dashboard</span></span>
+            </a>
+            <span class="text-body-secondary small d-none d-md-inline">CPU profiling for Redis</span>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <a class="btn btn-sm btn-accent" href="{% url 'home' %}#new"><i class="fa-solid fa-plus me-1"></i>New capture</a>
+                <button class="btn btn-sm btn-ghost" id="theme-toggle" type="button" title="Toggle theme" aria-label="Toggle theme">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-xl py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{% static 'vendor/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'vendor/htmx.min.js' %}"></script>
+    <script src="{% static 'vendor/chart.umd.min.js' %}"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+</body>
+
+</html>

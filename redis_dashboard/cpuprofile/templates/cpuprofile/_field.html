@@ -1,0 +1,11 @@
+<div class="{{ col }}">
+    <div class="form-floating">
+        <input class="form-control form-control-sm{% if field.errors %} is-invalid{% endif %}"
+            type="{{ field.field.widget.input_type }}" name="{{ field.html_name }}" id="{{ field.id_for_label }}"
+            value="{{ field.value|default_if_none:'' }}" placeholder="{{ field.label }}"
+            {% if field.field.widget.input_type == 'number' %}step="any" inputmode="decimal"{% endif %}
+            {% if field.field.widget.input_type == 'password' %}autocomplete="current-password"{% endif %}>
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% for e in field.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+    </div>
+</div>

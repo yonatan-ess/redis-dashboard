@@ -1,174 +1,164 @@
+import time
+from collections import Counter
+
 import redis
 
-
-def get_monitor_data(conn, amount=500):
-    commands = int(amount)
-    command_list = []
-    with conn.monitor() as m:
-        for command in m.listen():
-            commands -= 1
-            if commands == 0:
-                break
-            command_list.append(command)
-    return command_list
+TOP_N = 15
+# MONITOR can't time commands; these are gaps between arrivals, not durations
+GAP_PERCENTILES = [0.5, 0.9, 0.99]
+# our own probing commands, kept out of the per-command CPU table
+OWN_COMMANDS = {'monitor', 'slowlog|get', 'info'}
 
 
-def re_format_data(command_list):
-    # {'time': 1703031048.254477, 'db': 0, 'client_address': '127.0.0.1', 'client_port': '58865', 'client_type': 'tcp', 'command': 'SET key:__rand_int__ VXK'}
-    # transfer to
-    # {'duration': 0.00254477, 'command': 'SET' , 'key': 'key:__rand_int__', 'value': 'VXK'}
-    reformated = []
-    for i, command in enumerate(command_list):
-        if i > 1:
-            command_split = command['command'].split(' ')
-            command_type = command_split[0]
-            key = command_split[1] if len(command_split) > 1 else None
-            value = command_split[2] if len(command_split) > 2 else None
-            duration = float(command['time']) - \
-                float(command_list[i-1]['time'])
-            reformated.append(
-                {
-                    'duration': duration * 1000,
-                    'command': command_type,
-                    'keyname': key,
-                    'val': value
-                })
-    return reformated
+def connection(host='localhost', port=6379, db=0, username=None, password=None, timeout=5):
+    return redis.Redis(host=host, port=port, db=db,
+                       username=username or None, password=password or None,
+                       socket_connect_timeout=timeout, socket_timeout=timeout,
+                       decode_responses=True)
 
 
-def sort_commands(commands):
-    # sort by duration, and float
-    sorted_data = sorted(commands, key=lambda x: x['duration'])
-    return sorted_data
+def _decode(v):
+    return v.decode(errors='replace') if isinstance(v, bytes) else v
 
 
-def find_top_slowest_command_type(commands):
-    # find slowest command type
-    # {command: SET, total_duration: 0.00254477}
-    slowest_commands = {}
-    slowest_command_type = None
-    slowest_command_duration = 0
-    for command in commands:
-        if command['command'] != slowest_command_type:
-            if command['duration'] > slowest_command_duration:
-                slowest_command_type = command['command']
-                slowest_command_duration = command['duration']
-                if slowest_command_type not in slowest_commands:
-                    slowest_commands[slowest_command_type] = slowest_command_duration
-                    slowest_command_duration = 0
-                    slowest_command_type = None
-                else:
-                    slowest_commands[slowest_command_type] = slowest_command_duration + \
-                        slowest_commands[slowest_command_type]
-                    slowest_command_duration = 0
-                    slowest_command_type = None
-    return slowest_commands
+def get_monitor_data(conn, amount, max_seconds):
+    commands = []
+    deadline = time.monotonic() + max_seconds
+    try:
+        with conn.monitor() as m:
+            for command in m.listen():
+                commands.append(command)
+                if len(commands) >= amount or time.monotonic() > deadline:
+                    break
+    except redis.TimeoutError:
+        pass  # idle server; keep what we got
+    return commands
 
 
-def command_break_down_by_type(commands):
-    command_break_down = {}
-    for command in commands:
-        if command['command'] not in command_break_down:
-            command_break_down[command['command']] = 1
-        else:
-            command_break_down[command['command']] += 1
-    return command_break_down
-
-
-def key_name_break_down(commands):
-    key_break_down = {}
-    for command in commands:
-        if command['keyname'] not in key_break_down:
-            key_break_down[command['keyname']] = 1
-        else:
-            key_break_down[command['keyname']] += 1
-    return key_break_down
-
-
-def key_name_prefix_break_down(commands):
-    key_break_down = {}
-    for command in commands:
-        if command['keyname'] == None:  # dont include commands with not key such as ping
-            continue
-        if ":" in command['keyname']:  # ignore none prefix keys
-            prefix = command['keyname'].split(':')[0]
-            if prefix not in key_break_down:
-                key_break_down[prefix] = 1
-            else:
-                key_break_down[prefix] += 1
-        else:
-            continue
-
-    return key_break_down
-
-
-def top_n_slowest_commands(commands, n):
-    sorted_commands = sort_commands(commands)
-    top_n_commands = sorted_commands[:n]
-    return top_n_commands
-
-
-def get_percentiles_commands_duration(commands):
-    sorted_commands = sort_commands(commands)
-    percentiles = [0.25, 0.5, 0.75, 0.9, 0.95, 0.99]
-    percentile_commands = {}
-    for percentile in percentiles:
-        percentile_commands[percentile] = sorted_commands[int(
-            len(sorted_commands) * percentile)]['duration']
-    return percentile_commands
-
-
-def get_total_commands_processed(commands):
-    return len(commands)
-
-
-def get_total_commands_duration(commands):
-    total_duration = 0
-    for command in commands:
-        total_duration += command['duration']
-    return total_duration
-
-
-def count_amount_of_total_commands_per_second(commands):
-    # TODO, verify this
-    total_commands_per_second = 0
-    for command in commands:
-        total_commands_per_second += 1/command['duration']
-    return total_commands_per_second
-
-
-def connection(redis_host="localhost", db=0, port=6379, password=None, username=None):
-    r = redis.Redis(host=redis_host,
-                    port=port,
-                    db=db,
-                    username=username,
-                    password=password,
-                    )
-    return r
-
-
-def merge_results(conn, amount):
-    commands = get_monitor_data(conn, amount)
-    commands_reformat = re_format_data(commands)
-    sorted_commands = sort_commands(commands_reformat)
-    breakUpCommandByType = command_break_down_by_type(sorted_commands)
-    TopSlowestCommands = find_top_slowest_command_type(sorted_commands)
-    keyNameBreakDown = key_name_break_down(sorted_commands)
-    keyNamePrefixBreakDown = key_name_prefix_break_down(sorted_commands)
-    percentilesCommandsDuration = get_percentiles_commands_duration(
-        sorted_commands)
-    top10SlowestCommands = sorted_commands[-10:]
-    getTotalCommandsProcessed = get_total_commands_processed(
-        sorted_commands)
-    getTotalCommandDuration = get_total_commands_duration(sorted_commands)
-
+def parse_command(raw):
+    parts = raw['command'].split(' ', 2)
     return {
-        'TopSlowestCommands': TopSlowestCommands,
-        'keyNameBreakDown': keyNameBreakDown,
-        'keyNamePrefixBreakDown': keyNamePrefixBreakDown,
-        'percentilesCommandsDuration': percentilesCommandsDuration,
-        'breakUpCommandByType': breakUpCommandByType,
-        'top10SlowestCommands': top10SlowestCommands,
-        'getTotalCommandsProcessed': getTotalCommandsProcessed,
-        'getTotalCommandDuration': getTotalCommandDuration,
+        'time': float(raw['time']),
+        'command': parts[0].upper(),
+        'keyname': parts[1] if len(parts) > 1 else None,
+        'size': len(parts[2]) if len(parts) > 2 else 0,
+        'val': parts[2][:200] if len(parts) > 2 else None,
+        'client': raw.get('client_address') or raw.get('client_type'),
     }
+
+
+def percentile(sorted_values, p):
+    if not sorted_values:
+        return None
+    return sorted_values[min(int(len(sorted_values) * p), len(sorted_values) - 1)]
+
+
+def key_prefix(key):
+    return key.split(':', 1)[0] + ':*' if ':' in key else '(no prefix)'
+
+
+def summarize_monitor(raw_commands):
+    commands = [parse_command(c) for c in raw_commands]
+    gaps = sorted((b['time'] - a['time']) * 1000 for a, b in zip(commands, commands[1:]))
+    window = commands[-1]['time'] - commands[0]['time'] if len(commands) > 1 else 0
+    keyed = [c for c in commands if c['keyname']]
+    largest = sorted((c for c in commands if c['size']), key=lambda c: c['size'], reverse=True)
+    return {
+        'captured': len(commands),
+        'window_ms': window * 1000,
+        'monitor_ops_per_sec': (len(commands) - 1) / window if window else None,
+        'command_mix': Counter(c['command'] for c in commands).most_common(),
+        'top_keys': Counter(c['keyname'] for c in keyed).most_common(TOP_N),
+        'top_prefixes': Counter(key_prefix(c['keyname']) for c in keyed).most_common(TOP_N),
+        'top_clients': Counter(c['client'] for c in commands).most_common(TOP_N),
+        'largest_payloads': [
+            {k: c[k] for k in ('command', 'keyname', 'size', 'val')} for c in largest[:10]],
+        'gap_ms': {str(p): percentile(gaps, p) for p in GAP_PERCENTILES},
+    }
+
+
+def snapshot(conn):
+    """Cumulative server counters; diff two snapshots to get a sample's real cost."""
+    snap = {'at': time.monotonic(), 'commandstats': None, 'cpu': None, 'slowlog_id': None}
+    try:
+        snap['commandstats'] = conn.info('commandstats')
+    except redis.ResponseError:
+        pass  # INFO restricted by ACL / managed Redis
+    try:
+        cpu = conn.info('cpu')
+        # commands run on the main thread, so that's what saturates first
+        snap['cpu'] = (cpu.get('used_cpu_sys_main_thread', cpu['used_cpu_sys'])
+                       + cpu.get('used_cpu_user_main_thread', cpu['used_cpu_user']))
+    except (redis.ResponseError, KeyError):
+        pass
+    try:
+        latest = conn.slowlog_get(1)
+        snap['slowlog_id'] = latest[0]['id'] if latest else -1
+    except redis.ResponseError:
+        pass
+    return snap
+
+
+def diff_commandstats(before, after):
+    rows = []
+    for name, stat in after.items():
+        cmd = name.removeprefix('cmdstat_')
+        if cmd in OWN_COMMANDS:
+            continue
+        prev = before.get(name, {'calls': 0, 'usec': 0})
+        calls, usec = stat['calls'] - prev['calls'], stat['usec'] - prev['usec']
+        if calls > 0:
+            rows.append({'command': cmd.upper(), 'calls': calls, 'usec': usec,
+                         'usec_per_call': usec / calls})
+    return sorted(rows, key=lambda r: r['usec'], reverse=True)
+
+
+def new_slowlog_entries(conn, since_id):
+    if since_id is None:
+        return None
+    try:
+        entries = conn.slowlog_get(128)
+    except redis.ResponseError:
+        return None
+    rows = [{
+        'id': e['id'],
+        'start_time': e['start_time'],
+        'duration_us': e['duration'],
+        'command': _decode(e['command'])[:200],
+        'client': _decode(e.get('client_address', '')),
+    } for e in entries if e['id'] > since_id]
+    return sorted(rows, key=lambda r: r['duration_us'], reverse=True)[:TOP_N]
+
+
+def slowlog_threshold_us(conn):
+    try:
+        return int(conn.config_get('slowlog-log-slower-than')['slowlog-log-slower-than'])
+    except (redis.ResponseError, KeyError, ValueError):
+        return None  # CONFIG is often disabled on managed Redis
+
+
+def take_sample(conn, amount, max_seconds):
+    before = snapshot(conn)
+    raw = get_monitor_data(conn, amount, max_seconds)
+    after = snapshot(conn)
+    elapsed = after['at'] - before['at']
+
+    stats = summarize_monitor(raw)
+    stats['elapsed_ms'] = elapsed * 1000
+    stats['slowlog'] = new_slowlog_entries(conn, before['slowlog_id'])
+    # rusage granularity overshoots on short windows; one thread can't exceed 100%
+    stats['cpu_pct'] = min((after['cpu'] - before['cpu']) / elapsed * 100, 100) \
+        if before['cpu'] is not None and after['cpu'] is not None and elapsed else None
+
+    if before['commandstats'] is not None and after['commandstats'] is not None:
+        rows = diff_commandstats(before['commandstats'], after['commandstats'])
+        calls = sum(r['calls'] for r in rows)
+        usec = sum(r['usec'] for r in rows)
+        stats['cpu_by_command'] = rows
+        stats['ops_per_sec'] = calls / elapsed if elapsed else None
+        stats['avg_usec_per_call'] = usec / calls if calls else None
+    else:
+        stats['cpu_by_command'] = None
+        stats['ops_per_sec'] = stats['monitor_ops_per_sec']
+        stats['avg_usec_per_call'] = None
+    return stats

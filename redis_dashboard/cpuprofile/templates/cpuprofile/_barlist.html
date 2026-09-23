@@ -1,0 +1,17 @@
+{% load dash %}
+<div class="panel p-3 h-100">
+    <div class="panel-title">{{ title }} {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}</div>
+    {% with top=rows.0.1 %}
+    <ul class="barlist">
+        {% for label, count in rows|slice:":10" %}
+        <li>
+            <span class="bar" style="width: {{ count|ratio:top }}%"></span>
+            <span class="label mono text-truncate" title="{{ label }}">{{ label }}</span>
+            <span class="value">{{ count|compact }}</span>
+        </li>
+        {% empty %}
+        <li class="text-body-secondary small">Nothing captured.</li>
+        {% endfor %}
+    </ul>
+    {% endwith %}
+</div>

@@ -1,0 +1,148 @@
+{% load dash %}
+<div class="sample-detail" data-selected="{{ sample.index }}">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h2 class="h4 mb-0">Sample #{{ sample.index }}</h2>
+        <span class="badge badge-level lvl-{{ sample.level }}">{{ sample.level }}</span>
+        <span class="text-body-secondary small ms-1">{{ sample.taken_at|date:"H:i:s.u"|slice:":12" }} UTC · {{ s.elapsed_ms|msec }} wall time</span>
+        <div class="btn-group btn-group-sm ms-auto">
+            <button class="btn btn-ghost" data-nav="-1" title="Previous (←)"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+            <button class="btn btn-ghost" data-nav="1" title="Next (→)">Next <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <div class="kpis mb-3">
+        <div class="kpi panel lvl-edge-{{ sample.level }}">
+            <div class="kpi-label">Avg cost / call</div>
+            <div class="kpi-value">{{ s.avg_usec_per_call|usec }}</div>
+            <div class="kpi-sub">from INFO commandstats</div>
+        </div>
+        <div class="kpi panel">
+            <div class="kpi-label">Main-thread CPU</div>
+            <div class="kpi-value">{{ s.cpu_pct|pct }}</div>
+            <div class="kpi-sub">incl. MONITOR overhead</div>
+        </div>
+        <div class="kpi panel">
+            <div class="kpi-label">Throughput</div>
+            <div class="kpi-value">{{ s.ops_per_sec|compact }}<small> ops/s</small></div>
+            <div class="kpi-sub">{% if s.cpu_by_command is None %}MONITOR estimate{% else %}server-wide{% endif %}</div>
+        </div>
+        <div class="kpi panel">
+            <div class="kpi-label">Commands seen</div>
+            <div class="kpi-value">{{ s.captured|compact }}</div>
+            <div class="kpi-sub">over {{ s.window_ms|msec }}</div>
+        </div>
+        <div class="kpi panel">
+            <div class="kpi-label">Slow log hits</div>
+            <div class="kpi-value">{% if s.slowlog is None %}—{% else %}{{ s.slowlog|length }}{% endif %}</div>
+            <div class="kpi-sub">≥ {% if capture.slowlog_threshold_us is None %}? µs{% else %}{{ capture.slowlog_threshold_us|usec }}{% endif %}</div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-xl-8">
+            <div class="panel p-3 h-100">
+                <div class="panel-title">Where the CPU went <span class="hint">real execution time per command type during this sample</span></div>
+                {% if s.cpu_by_command is None %}
+                <p class="text-body-secondary small mb-0"><i class="fa-solid fa-lock me-1"></i><code>INFO commandstats</code> isn't available for this user.</p>
+                {% else %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-dash mb-0">
+                        <thead><tr><th>Command</th><th class="w-50"></th><th class="text-end">Calls</th><th class="text-end">Total</th><th class="text-end">Per call</th></tr></thead>
+                        <tbody>
+                            {% for r in s.cpu_by_command %}
+                            <tr>
+                                <td class="mono fw-semibold">{{ r.command }}</td>
+                                <td><div class="meter"><span style="width: {{ r.usec|ratio:max_usec }}%"></span></div></td>
+                                <td class="text-end">{{ r.calls|compact }}</td>
+                                <td class="text-end">{{ r.usec|usec }}</td>
+                                <td class="text-end {% if r.usec_per_call >= capture.crit_usec %}text-crit{% elif r.usec_per_call >= capture.warn_usec %}text-warn{% endif %}">{{ r.usec_per_call|usec }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-body-secondary">No commands ran.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="panel p-3 h-100">
+                <div class="panel-title">Command mix <span class="hint">from MONITOR</span></div>
+                <div class="chart-box chart-box-sm"><canvas data-chart="mix" data-source="mix-data"></canvas></div>
+                {{ s.command_mix|json_script:"mix-data" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="panel p-3 mb-3">
+        <div class="panel-title">Slow log <span class="hint">new SLOWLOG entries during this sample, slowest first</span></div>
+        {% if s.slowlog is None %}
+        <p class="text-body-secondary small mb-0"><i class="fa-solid fa-lock me-1"></i><code>SLOWLOG</code> isn't available for this user.</p>
+        {% elif not s.slowlog %}
+        <p class="text-body-secondary small mb-0"><i class="fa-solid fa-circle-check text-ok me-1"></i>Nothing crossed the
+            {% if capture.slowlog_threshold_us is None %}slowlog threshold{% else %}{{ capture.slowlog_threshold_us|usec }} threshold{% endif %}.</p>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-sm table-dash mb-0">
+                <thead><tr><th class="text-end">Duration</th><th>Command</th><th>Client</th></tr></thead>
+                <tbody>
+                    {% for e in s.slowlog %}
+                    <tr>
+                        <td class="text-end text-nowrap {% if e.duration_us >= capture.crit_usec %}text-crit{% elif e.duration_us >= capture.warn_usec %}text-warn{% endif %}">{{ e.duration_us|usec }}</td>
+                        <td class="mono text-break">{{ e.command }}</td>
+                        <td class="mono text-body-secondary text-nowrap">{{ e.client }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6 col-xl-4">{% include "cpuprofile/_barlist.html" with title="Hot keys" rows=s.top_keys %}</div>
+        <div class="col-md-6 col-xl-4">{% include "cpuprofile/_barlist.html" with title="Key prefixes" rows=s.top_prefixes hint="text before first ':'" %}</div>
+        <div class="col-md-6 col-xl-4">{% include "cpuprofile/_barlist.html" with title="Clients" rows=s.top_clients %}</div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="panel p-3 h-100">
+                <div class="panel-title">Largest payloads <span class="hint">by argument size</span></div>
+                {% if s.largest_payloads %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-dash mb-0">
+                        <thead><tr><th class="text-end">Size</th><th>Command</th><th>Key</th><th>Value</th></tr></thead>
+                        <tbody>
+                            {% for p in s.largest_payloads %}
+                            <tr>
+                                <td class="text-end text-nowrap">{{ p.size|filesizeformat }}</td>
+                                <td class="mono fw-semibold">{{ p.command }}</td>
+                                <td class="mono text-nowrap">{{ p.keyname }}</td>
+                                <td class="mono text-body-secondary small cell-trunc" title="{{ p.val }}">{{ p.val }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-body-secondary small mb-0">No commands with values.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="panel p-3 h-100">
+                <div class="panel-title">Arrival gaps
+                    <i class="fa-regular fa-circle-question hint" data-bs-toggle="tooltip"
+                        data-bs-title="MONITOR can't time commands. These are gaps between consecutive commands arriving — big gaps mean Redis was idle, not slow."></i>
+                </div>
+                <div class="gaps">
+                    <div><span>p50</span><strong>{{ s.gap_ms|get:"0.5"|msec }}</strong></div>
+                    <div><span>p90</span><strong>{{ s.gap_ms|get:"0.9"|msec }}</strong></div>
+                    <div><span>p99</span><strong>{{ s.gap_ms|get:"0.99"|msec }}</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

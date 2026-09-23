@@ -1,0 +1,42 @@
+<form class="panel p-3" hx-post="{% url 'new_capture' %}" hx-target="this" hx-swap="outerHTML"
+    hx-disabled-elt="find button[type=submit]" hx-indicator="this" novalidate>
+    {% csrf_token %}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 mb-0"><i class="fa-solid fa-satellite-dish me-2 text-accent"></i>New capture</h2>
+    </div>
+
+    {% for err in form.non_field_errors %}
+    <div class="alert alert-danger py-2 small d-flex gap-2"><i class="fa-solid fa-triangle-exclamation mt-1"></i><div>{{ err }}</div></div>
+    {% endfor %}
+
+    <div class="section-label">Connection</div>
+    <div class="row g-2 mb-3">
+        {% include "cpuprofile/_field.html" with field=form.host col="col-12" %}
+        {% include "cpuprofile/_field.html" with field=form.port col="col-7" %}
+        {% include "cpuprofile/_field.html" with field=form.db col="col-5" %}
+        {% include "cpuprofile/_field.html" with field=form.username col="col-6" %}
+        {% include "cpuprofile/_field.html" with field=form.password col="col-6" %}
+    </div>
+
+    <div class="section-label">Sampling</div>
+    <div class="row g-2 mb-3">
+        {% include "cpuprofile/_field.html" with field=form.amount col="col-6" %}
+        {% include "cpuprofile/_field.html" with field=form.samples_requested col="col-6" %}
+        {% include "cpuprofile/_field.html" with field=form.interval col="col-6" %}
+        {% include "cpuprofile/_field.html" with field=form.max_sample_seconds col="col-6" %}
+    </div>
+
+    <div class="section-label">Latency thresholds <span class="fw-normal text-body-tertiary">(avg µs per call)</span></div>
+    <div class="row g-2 mb-3">
+        {% include "cpuprofile/_field.html" with field=form.warn_usec col="col-6" %}
+        {% include "cpuprofile/_field.html" with field=form.crit_usec col="col-6" %}
+    </div>
+
+    <button type="submit" class="btn btn-accent w-100">
+        <span class="when-idle"><i class="fa-solid fa-play me-1"></i>Start capture</span>
+        <span class="when-busy"><span class="spinner-border spinner-border-sm me-2"></span>Connecting…</span>
+    </button>
+    <p class="form-text small mt-2 mb-0">
+        <i class="fa-solid fa-circle-info me-1"></i><code>MONITOR</code> adds load to the server — keep samples short on busy production hosts.
+    </p>
+</form>

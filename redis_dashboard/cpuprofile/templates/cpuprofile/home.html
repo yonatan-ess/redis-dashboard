@@ -1,0 +1,50 @@
+{% extends "cpuprofile/base.html" %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4" id="new">
+        <div class="sticky-lg-top" style="top: 1rem">
+            {% include "cpuprofile/_capture_form.html" %}
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="d-flex align-items-baseline justify-content-between mb-3">
+            <h1 class="h4 mb-0">Captures</h1>
+            <span class="text-body-secondary small">{{ captures|length }} recent</span>
+        </div>
+
+        {% for c in captures %}
+        <a class="capture-row panel" href="{% url 'capture' c.id %}">
+            <span class="status-dot status-{{ c.status }}" title="{{ c.status }}"></span>
+            <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-semibold">#{{ c.id }}</span>
+                    <span class="mono text-truncate">{{ c.target }}</span>
+                    <span class="badge badge-status status-{{ c.status }}">{{ c.status }}</span>
+                </div>
+                <div class="text-body-secondary small">
+                    {{ c.started_at|date:"M j, H:i:s" }} UTC ·
+                    {{ c.n_samples }}/{{ c.samples_requested }} samples ·
+                    {{ c.amount|floatformat:0 }} cmds each
+                </div>
+            </div>
+            <div class="d-flex gap-1 flex-shrink-0">
+                {% if c.n_crit %}<span class="pill lvl-crit" title="critical samples">{{ c.n_crit }}</span>{% endif %}
+                {% if c.n_warn %}<span class="pill lvl-warn" title="warning samples">{{ c.n_warn }}</span>{% endif %}
+            </div>
+            <i class="fa-solid fa-chevron-right text-body-tertiary"></i>
+        </a>
+        {% empty %}
+        <div class="panel empty-state">
+            <i class="fa-solid fa-wave-square"></i>
+            <h2 class="h5">No captures yet</h2>
+            <p class="text-body-secondary mb-0">
+                Point the form at a Redis instance and hit <strong>Start capture</strong>.<br>
+                Each sample records a burst of <code>MONITOR</code> traffic plus the real CPU cost from
+                <code>INFO commandstats</code> and <code>SLOWLOG</code>.
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
