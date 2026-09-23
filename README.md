@@ -4,8 +4,9 @@
 
 **Find out what's burning your Redis CPU, in minutes rather than hours of scrolling through `MONITOR`.**
 
-[![Python](https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Django](https://img.shields.io/badge/django-4.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![tests](https://github.com/yonatan-ess/redis-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/yonatan-ess/redis-dashboard/actions/workflows/tests.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/django-5.2%20LTS-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![Redis](https://img.shields.io/badge/redis-6%2B-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
@@ -41,7 +42,7 @@ It's a small local web app. Point it at a Redis instance, press **Start capture*
 ## Quick start
 
 > [!IMPORTANT]
-> Requires Python 3.9+ and network access to the Redis instance you want to profile.
+> Requires Python 3.10+ and network access to the Redis instance you want to profile.
 
 ```bash
 git clone https://github.com/yonatan-ess/redis-dashboard
@@ -142,8 +143,15 @@ It never changes your server's settings: no `CONFIG SET` and no `SLOWLOG RESET`.
 ## Development
 
 ```bash
-python redis_dashboard/manage.py test cpuprofile   # run tests
+cd redis_dashboard
+python manage.py test cpuprofile                       # unit + view tests, no Redis needed
+REDIS_HOST=localhost python manage.py test cpuprofile  # also run integration tests against a real Redis
 ```
+
+> [!CAUTION]
+> The integration tests write `rdtest:*` keys and briefly change `slowlog-log-slower-than` (restoring it afterwards). Point `REDIS_HOST` at a throwaway instance, e.g. `docker run --rm -p 6379:6379 redis:7`.
+
+CI runs the full suite, including the integration tests against a `redis:7` service, on Python 3.10–3.13.
 
 ```
 redis_dashboard/
