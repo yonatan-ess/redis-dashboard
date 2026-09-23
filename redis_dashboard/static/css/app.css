@@ -433,6 +433,18 @@ kbd {
 
 .gaps strong { font-size: 1.15rem; }
 
+/* keep scrolled-to sections clear of the sticky nav */
+#sample-detail { scroll-margin-top: 72px; }
+
+/* single-line cell that takes the leftover width */
+.cell-trunc {
+    max-width: 0;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* fade swapped-in content */
 .sample-detail { animation: fade-in .2s ease-out; }
 

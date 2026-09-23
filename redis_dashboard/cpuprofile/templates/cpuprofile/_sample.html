@@ -119,8 +119,8 @@
                             <tr>
                                 <td class="text-end text-nowrap">{{ p.size|filesizeformat }}</td>
                                 <td class="mono fw-semibold">{{ p.command }}</td>
-                                <td class="mono text-break">{{ p.keyname }}</td>
-                                <td class="mono text-body-secondary text-break small">{{ p.val|truncatechars:120 }}</td>
+                                <td class="mono text-nowrap">{{ p.keyname }}</td>
+                                <td class="mono text-body-secondary small cell-trunc" title="{{ p.val }}">{{ p.val }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

@@ -44,12 +44,12 @@ Run tests: ```python redis_dashboard/manage.py test cpuprofile```
 
 
 ## How to capture 
-![output2](https://github.com/yonatan-ess/redis-dashboard/assets/7499016/4735b127-2615-41c4-a825-3b7c4a1254f7)
+![New capture](docs/screenshots/capture-running.png)
 
 
 
 ## how to see captured monitors 
-![Screen Shot 2024-01-09 at 16 38 31](https://github.com/yonatan-ess/redis-dashboard/assets/7499016/907a5811-a04b-4573-a10b-85d58ed63a2f)
+![Sample detail](docs/screenshots/capture-done.png)
 
 
 ## Build With
